@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+##############################################################
+# TABLES:
+# 1 - list of external ip addresses
+# 2 - list of external epairs
+
+##############################################################
+# Script variables
+cmd="ipfw -q add"
+ks="keep-state"
+sks="setup keep-state"
+
+##############################################################
+# Flush all rules
+ipfw -q -f flush
+
+##############################################################
+# Enable NAT and Layer 4 Proxy
+. /usr/local/etc/ipfw.layer4
+
+##############################################################
+# Allow all loopback traffic
+$cmd 5 allow ip from any to any via lo0
+# Allow private containers to talk on their bridge
+$cmd 8 allow log ip from $clsn to any via $clif
+# Prevent external containers from talking to private containers
+$cmd 9 deny log ip from 'table(1)' to $clsn via 'table(2)'
+# Nat traffic received on external interface
+$cmd 100 nat 1 log ip from any to $eip recv $eif
+$cmd 101 check-state log
+# Allow some tcp ports to communicate into the external interface/ip address
+$cmd 102 allow log tcp from $eip to any 53, 80, 443, 22, 65222 in via $eif $sks
+
+##############################################################
+# Tredly-Host
+$cmd 110 allow log icmp from any to $eip in via $eif $ks
+# Allow incoming SSH
+$cmd 111 allow log tcp from any to $eip 65222 in via $eif $sks
+# Allow outgoing ping
+$cmd 112 allow log icmp from $eip to any out via $eif $ks
+# Allow outgoing DNS, 80/443 and SSH to other Tredly Hosts
+$cmd 113 allow log tcp from $eip to any 53, 80, 443, 22, 65222 out via $eif $sks
+## Allow outgoing DNS and NTP
+$cmd 114 allow log udp from $eip to any 53, 123 out via $eif $ks
+
+##############################################################
+# Incoming and outgoing NAT Skip rules
+$cmd 120 skipto 65510 log tcp from any to $clsn recv $eif $sks
+$cmd 121 skipto 65510 log udp from any to $clsn recv $eif $ks
+$cmd 122 skipto 65510 log tcp from $clsn to not $clsn xmit $eif $sks
+$cmd 123 skipto 65510 log udp from $clsn to not $clsn xmit $eif $ks
+
+##############################################################
+# VIMAGE rules for external containers
+# allow external epairs to communicate with anything
+$cmd 209 allow log ip from any to any via 'table(2)' $ks
+# allow anything to communicate with external ip addresses via external interface
+$cmd 211 allow log ip from any to 'table(1)' in via $eif $sks
+
+##############################################################
+# Block any further traffic
+$cmd 65501 deny log ip from any to any
+
+##############################################################
+# Incoming/Outgoing NAT rules
+$cmd 65510 nat 1 log ip from $clsn to any xmit $eif $ks
+$cmd 65511 allow log ip from $eip to any xmit $eif $ks
+$cmd 65512 allow log ip from any to $clsn recv $eif $ks
+$cmd 65513 deny log ip from any to any
