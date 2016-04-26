@@ -132,6 +132,13 @@ Tredly-Host functions will be containerised and an API added to each to allow ea
 
 Tredly-Build will be given its own API so that you can push containers directly to it and have them built on push.
 
+## Contributing
+
+We encourage you to contribute to Tredly. Please check out the [Contributing documentation](https://github.com/tredly/tredly-host/blob/master/CONTRIBUTING.md) for guidelines about how to get involved.
+
+## License
+
+Tredly is released under the [GNU General Public License v3](http://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ## Other Information
 
