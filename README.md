@@ -49,19 +49,7 @@ Validates and Builds containers on Tredly-Host
 
 ## Configuring Tredly-Host
 
-Tredly-Host has the concept of Partitions, ContainerGroups and Containers. Whenever a container is created, it is created inside a partition. Tredly-Host is installed with a default partition.
-
-Partitions can be considered like Virtual Machines, with ContainerGroups and Containers inside them.
-
-Partitions have their own storage area where files and folders can be put. Containers created within a partition have access to the files and folders within the partition and can use these files/folders when the container is created. If containers want to use SSL connections, you will need to copy the SSL certificates to the Partition.
-
-Containers can be thought of as virtual machines. By default containers cannot directly communicate with each other.
-
-ContainerGroups simply allow you to group containers together so that communication is allowed between containers.
-
-Tredly-Host also has an internal Layer 7 Proxy (HTTP/HTTPS Proxy). For the Proxy to be able to do SSL connections, it needs to have SSL certificates installed in it. You will need to copy your SSL certificates to Tredly-Host (rsync is the best way) and then copy them into `/usr/local/etc/nginx/ssl/`
-
-You will also need to get your container files onto Tredly-Host. Currently Tredly-Host does not have an API to allow you to push container files to it - though this functionality is being perfected as I write this. Rsync is the recommended option to get your container files to Tredly-Host at this point.
+Tredly-Host can be configured in a number of ways, depending on what you are trying to achieve. We recommend you read the wiki article https://github.com/tredly/tredly-host/wiki/Tredly-Overview to understand the options you can configure in Tredly.
 
 
 ## Tredly-Host Commands
