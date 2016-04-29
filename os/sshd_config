@@ -11,13 +11,13 @@ StrictModes yes
 MaxAuthTries 2
 MaxSessions 10
 RSAAuthentication yes
-PubkeyAuthentication yes
+PubkeyAuthentication no
 AuthorizedKeysFile %h/.ssh/authorized_keys
 RhostsRSAAuthentication no
 HostbasedAuthentication no
 IgnoreUserKnownHosts yes
 IgnoreRhosts yes
-PasswordAuthentication no
+PasswordAuthentication yes
 ChallengeResponseAuthentication yes
 UsePAM no
 VersionAddendum no
