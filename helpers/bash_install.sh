@@ -19,6 +19,8 @@
 # along with tredly-build.  If not, see <http://www.gnu.org/licenses/>.
 ##########################################################################
 
+set -o pipefail
+
 LOGFILE="/var/log/legr-install.log"
 TREDLY_GIT_URL="https://github.com/tredly/tredly-build.git"
 DEFAULT_CONTAINER_SUBNET="10.0.0.0/16"
@@ -434,6 +436,8 @@ mkdir -p /usr/local/etc/nginx/access
 _exitCode=$(( ${_exitCode} & $? ))
 mkdir -p /usr/local/etc/nginx/server_name
 _exitCode=$(( ${_exitCode} & $? ))
+mkdir -p /usr/local/etc/nginx/proxy_pass
+_exitCode=$(( ${_exitCode} & $? ))
 mkdir -p /usr/local/etc/nginx/ssl
 _exitCode=$(( ${_exitCode} & $? ))
 mkdir -p /usr/local/etc/nginx/sslconfig
@@ -442,7 +446,7 @@ mkdir -p /usr/local/etc/nginx/upstream
 _exitCode=$(( ${_exitCode} & $? ))
 cp ${DIR}/proxy/nginx.conf /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
-cp -R ${DIR}/proxy/server_name /usr/local/etc/nginx/
+cp -R ${DIR}/proxy/proxy_pass /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
 cp -R ${DIR}/proxy/sslconfig /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
