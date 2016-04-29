@@ -34,11 +34,7 @@ Validates and Builds containers on Tredly-Host
     * `passwd tredly`
     * Add user to Wheel Group so they can su to root: `pw groupmod wheel -m tredly`
 
-3. SSH into Host using new user
-    * Allow key access via SSH instead of password
-        1. mkdir ~/.ssh && vi ~/.ssh/authorized_keys
-        2. Get your SSH key from your local computer
-            * vim ~/.ssh/id_rsa.pub
+3. SSH into Host using new user and password
 4. Change user to root to complete installation: `su -`
 5. Install Git so you can install Tredly-Host
     * `pkg install -y git`
