@@ -258,20 +258,20 @@ fi
 # Install Packages
 echo "Installing Packages"
 _exitCode=0
-pkg install -y vim-lite 
-_exitCode=$(( ${_exitCode} & $? ))
+pkg install -y vim-lite | tee -a "${LOGFILE}"
+_exitCode=$(( ${PIPESTATUS[0]} & $? ))
 pkg install -y rsync | tee -a "${LOGFILE}"
-_exitCode=$(( ${_exitCode} & $? ))
+_exitCode=$(( ${PIPESTATUS[0]} & $? ))
 pkg install -y openntpd | tee -a "${LOGFILE}"
-_exitCode=$(( ${_exitCode} & $? ))
+_exitCode=$(( ${PIPESTATUS[0]} & $? ))
 pkg install -y bash | tee -a "${LOGFILE}"
-_exitCode=$(( ${_exitCode} & $? ))
+_exitCode=$(( ${PIPESTATUS[0]} & $? ))
 pkg install -y git | tee -a "${LOGFILE}"
-_exitCode=$(( ${_exitCode} & $? ))
+_exitCode=$(( ${PIPESTATUS[0]} & $? ))
 pkg install -y nginx | tee -a "${LOGFILE}"
-_exitCode=$(( ${_exitCode} & $? ))
+_exitCode=$(( ${PIPESTATUS[0]} & $? ))
 pkg install -y unbound | tee -a "${LOGFILE}"
-_exitCode=$(( ${_exitCode} & $? ))
+_exitCode=$(( ${PIPESTATUS[0]} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
     echo "Success"
 else
