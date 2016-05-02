@@ -23,7 +23,7 @@ set -o pipefail
 
 LOGFILE="/var/log/legr-install.log"
 TREDLY_GIT_URL="https://github.com/tredly/tredly-build.git"
-DEFAULT_CONTAINER_SUBNET="10.0.0.0/16"
+DEFAULT_CONTAINER_SUBNET="10.99.0.0/16"
 
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
 
