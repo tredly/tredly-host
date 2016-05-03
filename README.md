@@ -19,33 +19,7 @@ Validates and Builds containers on Tredly-Host
 
 ## Install Tredly-Host
 
-1. Install FreeBSD (**10.3 or above**) Root on ZFS.
-
-	* Select all defaults except:
-    	* Deselect Ports (Tredly uses pkgs for everything)
-    	* Select System source code (we will use this later for custom kernel)
-    	* Select Auto (ZFS) as partitioning
-
-    Wait for it to complete and reboot
-
-2. Log in as root and add user that isn't root for SSH access (username can be anything)
-
-    * `pw useradd -n tredly -s /bin/tcsh -m`
-    * `passwd tredly`
-    * Add user to Wheel Group so they can su to root: `pw groupmod wheel -m tredly`
-
-3. SSH into Host using new user
-    * Allow key access via SSH instead of password
-        1. mkdir ~/.ssh && vi ~/.ssh/authorized_keys
-        2. Get your SSH key from your local computer
-            * vim ~/.ssh/id_rsa.pub
-4. Change user to root to complete installation: `su -`
-5. Install Git so you can install Tredly-Host
-    * `pkg install -y git`
-6. Install Tredly-Host
-    * `cd /tmp && git clone https://github.com/tredly/tredly-host.git`
-    * Install Tredly-host: `cd /tmp/tredly-host && sh install.sh`
-    * This will take some time (depending on the speed of your machine and internet connection) as Tredly-Host uses Tredly-Build and a number of other pieces of software. **Note that this step may also re-compile your kernel for VIMAGE support if it is not found within your current kernel.**
+Please see <http://www.tredly.com/docs/?p=31>
 
 ## Configuring Tredly-Host
 
