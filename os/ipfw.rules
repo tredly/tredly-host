@@ -40,8 +40,10 @@ $cmd 111 allow log tcp from any to $eip 65222 in via $eif $sks
 $cmd 112 allow log icmp from $eip to any out via $eif $ks
 # Allow outgoing DNS, 80/443 and SSH to other Tredly Hosts
 $cmd 113 allow log tcp from $eip to any 53, 80, 443, 22, 65222 out via $eif $sks
-## Allow outgoing DNS and NTP
+# Allow outgoing DNS and NTP
 $cmd 114 allow log udp from $eip to any 53, 123 out via $eif $ks
+# Allow connections to Tredly API
+$cmd 115 allow log tcp from any to $eip 65223 in via $eif $sks
 
 ##############################################################
 # Incoming and outgoing NAT Skip rules

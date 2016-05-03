@@ -23,7 +23,7 @@ set -o pipefail
 
 LOGFILE="/var/log/legr-install.log"
 TREDLY_GIT_URL="https://github.com/tredly/tredly-build.git"
-DEFAULT_CONTAINER_SUBNET="10.0.0.0/16"
+DEFAULT_CONTAINER_SUBNET="10.99.0.0/16"
 
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
 
@@ -440,22 +440,18 @@ mkdir -p /usr/local/etc/nginx/proxy_pass
 _exitCode=$(( ${_exitCode} & $? ))
 mkdir -p /usr/local/etc/nginx/ssl
 _exitCode=$(( ${_exitCode} & $? ))
-mkdir -p /usr/local/etc/nginx/sslconfig
-_exitCode=$(( ${_exitCode} & $? ))
 mkdir -p /usr/local/etc/nginx/upstream
 _exitCode=$(( ${_exitCode} & $? ))
 cp ${DIR}/proxy/nginx.conf /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
 cp -R ${DIR}/proxy/proxy_pass /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
-cp -R ${DIR}/proxy/sslconfig /usr/local/etc/nginx/
-_exitCode=$(( ${_exitCode} & $? ))
 service nginx start
 _exitCode=$(( ${_exitCode} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+   echo "Success"
 else
-    echo "Failed"
+   echo "Failed"
 fi
 
 # Configure Unbound DNS
