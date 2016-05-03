@@ -34,7 +34,7 @@ pkg install -y bash
 if test $? == 0
 then
     echo "################"
-    echo "Install complete. Please perform the following manual commands:"
-    echo "1. Copy your SSL certificates into /usr/local/etc/nginx/ssl/ and configure them in /usr/local/etc/nginx/sslconfig/."
-    echo "2. Reboot your host for the new kernel and settings to take effect."
+    echo "Install complete"
+    echo "################"
+    echo "Please reboot your host for the new kernel and settings to take effect."
 fi

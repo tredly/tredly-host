@@ -440,15 +440,11 @@ mkdir -p /usr/local/etc/nginx/proxy_pass
 _exitCode=$(( ${_exitCode} & $? ))
 mkdir -p /usr/local/etc/nginx/ssl
 _exitCode=$(( ${_exitCode} & $? ))
-mkdir -p /usr/local/etc/nginx/sslconfig
-_exitCode=$(( ${_exitCode} & $? ))
 mkdir -p /usr/local/etc/nginx/upstream
 _exitCode=$(( ${_exitCode} & $? ))
 cp ${DIR}/proxy/nginx.conf /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
 cp -R ${DIR}/proxy/proxy_pass /usr/local/etc/nginx/
-_exitCode=$(( ${_exitCode} & $? ))
-cp -R ${DIR}/proxy/sslconfig /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
 service nginx start
 _exitCode=$(( ${_exitCode} & $? ))
