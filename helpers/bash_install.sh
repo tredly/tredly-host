@@ -21,8 +21,9 @@
 
 set -o pipefail
 
-LOGFILE="/var/log/legr-install.log"
-TREDLY_GIT_URL="https://github.com/tredly/tredly-build.git"
+LOGFILE="/var/log/tredly-install.log"
+TREDLYBUILD_GIT_URL="https://github.com/tredly/tredly-build.git"
+TREDLYAPI_GIT_URL="https://github.com/tredly/tredly-api.git"
 DEFAULT_CONTAINER_SUBNET="10.99.0.0/16"
 
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
@@ -225,6 +226,22 @@ if [[ "${_userContinueToConfigure}" != 'y' ]] && [[ "${_userContinueToConfigure}
     exit 1
 fi
 
+##########
+
+# Compile the kernel if vimage is not installed
+_vimageInstalled=$( sysctl kern.conftxt | grep '^options[[:space:]]VIMAGE$' | wc -l )
+if [[ ${_vimageInstalled} -gt 0 ]]; then
+    # check for a kernel source directory
+    _downloadSource="y"
+    _sourceExists=""
+    if [[ -d '/usr/src/sys' ]]; then
+        _sourceExists="true"
+        echo "It appears that the kernel source files already exist in /usr/src/sys"
+        read -p "Do you want to download them again? (y/n) " _downloadSource
+    fi
+fi
+
+##########
 
 # set the networking up for the installer
 ifconfig ${EXT_INTERFACE} inet ${EXT_IP} netmask ${EXT_MASK}
@@ -236,6 +253,8 @@ if [[ ! $? ]]; then
     echo "Failed to add default gateway ${EXT_GATEWAY}."
 fi
 
+##########
+
 # Update FreeBSD and install updates
 echo "Fetching and Installing FreeBSD Updates"
 freebsd-update fetch install | tee -a "${LOGFILE}" 
@@ -244,6 +263,8 @@ if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
 else
     echo "Failed"
 fi
+
+##########
 
 # set up pkg
 echo "Setting up pkg"
@@ -254,6 +275,8 @@ if [[ $? -eq 0 ]]; then
 else
     echo "Failed"
 fi
+
+##########
 
 # Install Packages
 echo "Installing Packages"
@@ -277,6 +300,8 @@ if [[ ${_exitCode} -eq 0 ]]; then
 else
     echo "Failed"
 fi
+
+##########
 
 # Configure /etc/rc.conf
 echo "Configuring /etc/rc.conf"
@@ -304,6 +329,8 @@ else
     echo "Failed"
 fi
 
+##########
+
 # Enable the cloned interfaces
 echo "Enabling cloned interface(s)"
 service netif cloneup
@@ -313,6 +340,8 @@ else
     echo "Failed"
 fi
 
+##########
+
 # Configure IP on Host to communicate with Containers
 echo "Configuring bridge1"
 ifconfig bridge1 inet ${_hostPrivateIP} netmask $( cidr2netmask "${CONTAINER_SUBNET_CIDR}" )
@@ -321,6 +350,8 @@ if [[ $? -eq 0 ]]; then
 else
     echo "Failed"
 fi
+
+##########
 
 # Configure SSH
 _exitCode=0
@@ -340,6 +371,8 @@ else
     echo "Failed"
 fi
 
+##########
+
 # Configure Vim
 echo "Configuring vim"
 cp ${DIR}/os/vimrc /usr/local/share/vim/vimrc
@@ -348,6 +381,8 @@ if [[ $? -eq 0 ]]; then
 else
     echo "Failed"
 fi
+
+##########
 
 # Configure IPFW
 echo "Configuring IPFW"
@@ -379,6 +414,7 @@ else
     echo "Failed"
 fi
 
+##########
 
 # Configure OpenNTP
 _exitCode=0
@@ -392,9 +428,12 @@ else
     echo "Failed"
 fi
 
+##########
 
 # Configure zfs scrubbing
 #vim /etc/periodic.conf
+
+##########
 
 # Change kernel options
 echo "Configuring kernel options"
@@ -416,6 +455,8 @@ else
     echo "Failed"
 fi
 
+##########
+
 # Configure fstab to fix bash bug
 if [[ $( grep "/dev/fd" /etc/fstab | wc -l ) -eq 0 ]]; then
     echo "Configuring bash"
@@ -428,6 +469,8 @@ if [[ $( grep "/dev/fd" /etc/fstab | wc -l ) -eq 0 ]]; then
 else
    echo "Bash already configured"
 fi
+
+##########
 
 # Configure HTTP Proxy
 echo "Configuring HTTP Proxy" 
@@ -454,6 +497,8 @@ else
     echo "Failed"
 fi
 
+##########
+
 # Configure Unbound DNS
 echo "Configuring Unbound"
 _exitCode=0
@@ -474,6 +519,8 @@ else
     echo "Failed"
 fi
 
+##########
+
 # Get tredly-build and install it
 echo "Configuring Tredly-build"
 _exitCode=1
@@ -485,7 +532,7 @@ if [[ -d "/tmp/tredly-build" ]]; then
 fi
 
 while [[ ${_exitCode} -ne 0 ]]; do
-    git clone ${TREDLY_GIT_URL}
+    git clone ${TREDLYBUILD_GIT_URL}
     _exitCode=$?
 done
 
@@ -512,6 +559,33 @@ fi
 # initialise tredly
 tredly init
 
+##########
+
+# set up tredly api
+echo "Configuring Tredly-API"
+_exitCode=1
+cd /tmp 
+# if the directory for tredly-api already exists, then delete it and start again
+if [[ -d "/tmp/tredly-api" ]]; then
+    echo "Cleaning previously downloaded Tredly-API"
+    rm -rf /tmp/tredly-api
+fi
+
+while [[ ${_exitCode} -ne 0 ]]; do
+    git clone ${TREDLYAPI_GIT_URL}
+    _exitCode=$?
+done
+
+cd /tmp/tredly-api
+./install.sh
+if [[ $? -eq 0 ]]; then
+    echo "Success"
+else
+    echo "Failed"
+fi
+
+##########
+
 # Setup crontab
 echo "Configuring crontab"
 _exitCode=0
@@ -527,8 +601,7 @@ else
     echo "Failed"
 fi
 
-# Compile the kernel if vimage is not installed
-_vimageInstalled=$( sysctl kern.conftxt | grep '^options[[:space:]]VIMAGE$' | wc -l )
+
 if [[ ${_vimageInstalled} -ne 0 ]]; then
     echo "Skipping kernel recompile as this kernel appears to already have VIMAGE compiled."
 else
@@ -536,15 +609,6 @@ else
     echo "Please note this will take some time."
     sleep_with_progress 5
     # lets compile the kernel for VIMAGE!
-
-    # check for a kernel source directory
-    _downloadSource="y"
-    _sourceExists=""
-    if [[ -d '/usr/src/sys' ]]; then
-        _sourceExists="true"
-        echo "It appears that the kernel source files already exist in /usr/src/sys"
-        read -p "Do you want to download them again? (y/n) " _downloadSource
-    fi
     
     # download the source if the user said yes
     if [[ "${_downloadSource}" == 'y' ]] || [[ "${_downloadSource}" == 'Y' ]]; then
