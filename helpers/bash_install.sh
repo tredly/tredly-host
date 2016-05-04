@@ -59,7 +59,6 @@ else
         elif [[ -n "$( ifconfig | grep "^${_interfaces[$(( ${_userSelectInterface} - 1 ))]}:" )" ]]; then
             EXT_INTERFACE="${_interfaces[$(( ${_userSelectInterface} - 1 ))]}"
         fi
-        
     done
 fi
 
@@ -77,6 +76,8 @@ _changeIP="y"
 if [[ -z "${DEFAULT_EXT_IP}" ]]; then
     echo "No ip address is set for this interface."
 else
+    echo "This interface currently has an ip address of ${DEFAULT_EXT_IP}."
+    
     # check for a dhcp leases file for this interface
     if [[ -f "/var/db/dhclient.leases.${EXT_INTERFACE}" ]]; then
         # look for its current ip address within the leases file
@@ -90,7 +91,7 @@ else
             echo "========================================================================="
         fi
     fi
-    echo "This interface currently has an ip address of ${DEFAULT_EXT_IP}."
+    
     echo ''
     read -p "Would you like to change it? (y/n) " _changeIP
 fi
@@ -205,18 +206,18 @@ CONTAINER_SUBNET_CIDR="$( rcut "${CONTAINER_SUBNET}" '/')"
 _hostPrivateIP=$( get_last_usable_ip4_in_network "${CONTAINER_SUBNET_NET}" "${CONTAINER_SUBNET_CIDR}" )
 
 echo ''
-echo '============================================'
-echo "Setting up host with the following settings:"
-echo '============================================'
+echo '===================================================='
+echo "Configuring Tredly-Host with the following settings:"
+echo '===================================================='
 {
     echo "Hostname:^${MY_HOSTNAME}"
     echo "External Interface:^${EXT_INTERFACE}"
-    echo "IP4 (${EXT_INTERFACE}):^${EXT_IP}"
-    echo "Subnet Mask (${EXT_INTERFACE}):^${EXT_MASK}"
-    echo "Default Gateway:^${EXT_GATEWAY}"
+    echo "    IP Address:^${EXT_IP}"
+    echo "    Subnet:^${EXT_MASK}"
+    echo "    External Gateway:^${EXT_GATEWAY}"
     echo "Container Subnet:^${CONTAINER_SUBNET}"
 } | column -ts^
-echo '============================================'
+echo '===================================================='
 echo ''
 read -p "Are these settings OK? (y/n) " _userContinueToConfigure
 
