@@ -1,23 +1,4 @@
 #!/usr/local/bin/bash
-##########################################################################
-# Copyright 2016 Vuid Pty Ltd
-# https://www.vuid.com
-#
-# This file is part of tredly-host.
-#
-# tredly-build is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# tredly-build is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with tredly-build.  If not, see <http://www.gnu.org/licenses/>.
-##########################################################################
 
 set -o pipefail
 
@@ -50,9 +31,9 @@ else
         for _i in ${!_interfaces[@]}; do
             echo "$(( ${_i} + 1 )). ${_interfaces[${_i}]}"
         done
-        
+
         read -p "Which would you like to use as your external interface? " _userSelectInterface
-        
+
         # ensure that the value we received lies within the bounds of the array
         if [[ ${_userSelectInterface} -lt 1 ]] || [[ ${_userSelectInterface} -gt ${#_interfaces[@]} ]] || ! is_int ${_userSelectInterface}; then
             e_error "Invalid selection. Please try again."
@@ -78,12 +59,12 @@ if [[ -z "${DEFAULT_EXT_IP}" ]]; then
     e_note "No ip address is set for this interface."
 else
     e_note "This interface currently has an ip address of ${DEFAULT_EXT_IP}."
-    
+
     # check for a dhcp leases file for this interface
     if [[ -f "/var/db/dhclient.leases.${EXT_INTERFACE}" ]]; then
         # look for its current ip address within the leases file
         _numLeases=$( grep -E "${DEFAULT_EXT_IP}" "/var/db/dhclient.leases.${EXT_INTERFACE}" | wc -l )
-        
+
         if [[ ${_numLeases} -gt 0 ]]; then
             # found a current lease for this ip address so throw a warning
             echo -e "${_colourMagenta}=============================================================================="
@@ -92,7 +73,7 @@ else
             echo -e "==============================================================================${_colourDefault}"
         fi
     fi
-    
+
     echo ''
     read -p "Would you like to change it? (y/n) " _changeIP
 fi
@@ -100,7 +81,7 @@ fi
 if [[ "${_changeIP}" == 'y' ]] || [[ "${_changeIP}" == 'Y' ]]; then
     _user_EXT_IP=''
     while [[ -z "${EXT_IP}" ]]; do
-        
+
         read -p "Please enter an IP address for ${EXT_INTERFACE} [${DEFAULT_EXT_IP}]: " _user_EXT_IP
 
         # if no input received then use the default
@@ -162,7 +143,7 @@ fi
 _user_MY_HOSTNAME=''
 while [[ -z "${MY_HOSTNAME}" ]]; do
     read -p "Please enter a hostname for your host [${HOSTNAME}]: " _user_MY_HOSTNAME
-    
+
     # if no input received then use the default
     if [[ -z ${_user_MY_HOSTNAME} ]] && [[ -n ${HOSTNAME} ]]; then
         echo "Using default of ${HOSTNAME}"
@@ -272,7 +253,7 @@ fi
 
 # Update FreeBSD and install updates
 e_note "Fetching and Installing FreeBSD Updates"
-freebsd-update fetch install | tee -a "${LOGFILE}" 
+freebsd-update fetch install | tee -a "${LOGFILE}"
 if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
     e_success "Success"
 else
@@ -445,7 +426,7 @@ fi
 ##########
 
 # Configure HTTP Proxy
-e_note "Configuring Layer 7 (HTTP) Proxy" 
+e_note "Configuring Layer 7 (HTTP) Proxy"
 _exitCode=0
 mkdir -p /usr/local/etc/nginx/access
 _exitCode=$(( ${_exitCode} & $? ))
@@ -487,7 +468,7 @@ fi
 # Get tredly-build and install it
 e_note "Configuring Tredly-build"
 _exitCode=1
-cd /tmp 
+cd /tmp
 # if the directory for tredly-build already exists, then delete it and start again
 if [[ -d "/tmp/tredly-build" ]]; then
     echo "Cleaning previously downloaded Tredly-build"
@@ -535,9 +516,9 @@ if [[ ${_vimageInstalled} -ne 0 ]]; then
 else
     echo "Recompiling kernel as this kernel does not have VIMAGE built in"
     echo "Please note this will take some time."
-    
+
     # lets compile the kernel for VIMAGE!
-    
+
     # download the source if the user said yes
     if [[ "${_downloadSource}" == 'y' ]] || [[ "${_downloadSource}" == 'Y' ]]; then
         _thisRelease=$( sysctl -n kern.osrelease | cut -d '-' -f 1 -f 2)
@@ -549,7 +530,7 @@ else
             # clean up the old source
             mv /usr/src/sys /usr/src/sys.old
         fi
-        
+
         # unpack new source
         tar -C / -xzf /tmp/src.txz
     fi
@@ -558,11 +539,11 @@ else
     cp ${DIR}/kernel/TREDLY /usr/src/sys/amd64/conf
 
     cd /usr/src
-    
+
     # work out how many cpus are available to this machine, and use 80% of them to speed up compile
     _availCpus=$( sysctl -n hw.ncpu )
     _useCpus=$( echo "scale=2; ${_availCpus}*0.8" | bc | cut -d'.' -f 1 )
-        
+
     # if we have a value less than 1 then set it to 1
     if [[ ${_useCpus} -lt 1 ]]; then
         _useCpus=1
@@ -570,7 +551,7 @@ else
 
     e_note "Compiling kernel using ${_useCpus} CPUs..."
     make -j${_useCpus} buildkernel KERNCONF=TREDLY
-    
+
     # only install the kernel if the build succeeded
     if [[ $? -eq 0 ]]; then
         make installkernel KERNCONF=TREDLY
