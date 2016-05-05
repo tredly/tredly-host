@@ -29,14 +29,15 @@ DEFAULT_CONTAINER_SUBNET="10.99.0.0/16"
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
 
 source "${DIR}/lib/util.sh"
+source "${DIR}/lib/output.sh"
 # make sure this script is running as root
 cmn_assert_running_as_root
 
 # Ask the user which interface they would like tredly set up on
 IFS=$'\n' _interfaces=($( ifconfig | grep "^[a-zA-Z].*[0-9].*:" | grep -v "^lo0:" | grep -v "^bridge[0-9].*:" | awk '{ print $1 }' | tr -d : ))
 echo ''
-echo "=============================="
-echo "Setting up networking"
+e_header "Installing Tredly-Host"
+e_note "Configuring Networking"
 echo ''
 
 # if only one interface was found then use that by default
@@ -50,11 +51,11 @@ else
             echo "$(( ${_i} + 1 )). ${_interfaces[${_i}]}"
         done
         
-        read -p "Which would you like to use? " _userSelectInterface
+        read -p "Which would you like to use as your external interface? " _userSelectInterface
         
         # ensure that the value we received lies within the bounds of the array
         if [[ ${_userSelectInterface} -lt 1 ]] || [[ ${_userSelectInterface} -gt ${#_interfaces[@]} ]] || ! is_int ${_userSelectInterface}; then
-            echo "Invalid selection. Please try again."
+            e_error "Invalid selection. Please try again."
             _userSelectInterface=''
         elif [[ -n "$( ifconfig | grep "^${_interfaces[$(( ${_userSelectInterface} - 1 ))]}:" )" ]]; then
             EXT_INTERFACE="${_interfaces[$(( ${_userSelectInterface} - 1 ))]}"
@@ -74,9 +75,9 @@ DEFAULT_EXT_GATEWAY=$( netstat -r4n | grep '^default' | awk '{ print $2 }' )
 _changeIP="y"
 
 if [[ -z "${DEFAULT_EXT_IP}" ]]; then
-    echo "No ip address is set for this interface."
+    e_note "No ip address is set for this interface."
 else
-    echo "This interface currently has an ip address of ${DEFAULT_EXT_IP}."
+    e_note "This interface currently has an ip address of ${DEFAULT_EXT_IP}."
     
     # check for a dhcp leases file for this interface
     if [[ -f "/var/db/dhclient.leases.${EXT_INTERFACE}" ]]; then
@@ -85,10 +86,10 @@ else
         
         if [[ ${_numLeases} -gt 0 ]]; then
             # found a current lease for this ip address so throw a warning
-            echo "========================================================================="
-            echo "WARNING! The current IP address ${DEFAULT_EXT_IP} was set using DHCP!"
+            echo -e "${_colourMagenta}=============================================================================="
+            echo -e "${_formatBold}WARNING!${_formatReset}${_colourMagenta} The current IP address ${DEFAULT_EXT_IP} was set using DHCP!"
             echo "It is recommended that this address be changed to be outside of your DHCP pool"
-            echo "========================================================================="
+            echo -e "==============================================================================${_colourDefault}"
         fi
     fi
     
@@ -205,20 +206,20 @@ CONTAINER_SUBNET_CIDR="$( rcut "${CONTAINER_SUBNET}" '/')"
 # Get the default host ip address on the private container network
 _hostPrivateIP=$( get_last_usable_ip4_in_network "${CONTAINER_SUBNET_NET}" "${CONTAINER_SUBNET_CIDR}" )
 
-echo ''
-echo '===================================================='
-echo "Configuring Tredly-Host with the following settings:"
-echo '===================================================='
+echo -e "${_colourMagenta}"
+echo -e '===================================================='
+echo -e "Configuring Tredly-Host with the following settings:"
+echo -e "===================================================="
 {
-    echo "Hostname:^${MY_HOSTNAME}"
-    echo "External Interface:^${EXT_INTERFACE}"
-    echo "    IP Address:^${EXT_IP}"
-    echo "    Subnet:^${EXT_MASK}"
-    echo "    External Gateway:^${EXT_GATEWAY}"
-    echo "Container Subnet:^${CONTAINER_SUBNET}"
+    echo -e "Hostname:^${MY_HOSTNAME}"
+    echo -e "External Interface:^${EXT_INTERFACE}"
+    echo -e "    IP Address:^${EXT_IP}"
+    echo -e "    Subnet:^${EXT_MASK}"
+    echo -e "    External Gateway:^${EXT_GATEWAY}"
+    echo -e "Container Subnet:^${CONTAINER_SUBNET}"
 } | column -ts^
 echo '===================================================='
-echo ''
+echo -e "${_colourDefault}"
 read -p "Are these settings OK? (y/n) " _userContinueToConfigure
 
 # check if user wanted to continue
@@ -229,7 +230,7 @@ fi
 
 ##########
 
-# Compile the kernel if vimage is not installed
+# Do checks at the start so the user can walk away while installation happens
 _vimageInstalled=$( sysctl kern.conftxt | grep '^options[[:space:]]VIMAGE$' | wc -l )
 if [[ ${_vimageInstalled} -gt 0 ]]; then
     # check for a kernel source directory
@@ -244,43 +245,56 @@ fi
 
 ##########
 
-# set the networking up for the installer
-ifconfig ${EXT_INTERFACE} inet ${EXT_IP} netmask ${EXT_MASK}
-if [[ ! $? ]]; then
-    echo "Failed to set ip address on ${EXT_INTERFACE}."
+# set up tredly api
+e_note "Configuring Tredly-API"
+_exitCode=1
+cd /tmp
+# if the directory for tredly-api already exists, then delete it and start again
+if [[ -d "/tmp/tredly-api" ]]; then
+    echo "Cleaning previously downloaded Tredly-API"
+    rm -rf /tmp/tredly-api
 fi
-route add default ${EXT_GATEWAY}
-if [[ ! $? ]]; then
-    echo "Failed to add default gateway ${EXT_GATEWAY}."
+
+while [[ ${_exitCode} -ne 0 ]]; do
+    git clone ${TREDLYAPI_GIT_URL}
+    _exitCode=$?
+done
+
+cd /tmp/tredly-api
+./install.sh
+if [[ $? -eq 0 ]]; then
+    e_success "Success"
+else
+    e_error "Failed"
 fi
 
 ##########
 
 # Update FreeBSD and install updates
-echo "Fetching and Installing FreeBSD Updates"
+e_note "Fetching and Installing FreeBSD Updates"
 freebsd-update fetch install | tee -a "${LOGFILE}" 
 if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # set up pkg
-echo "Setting up pkg"
+e_note "Configuring PKG"
 rm /usr/local/etc/pkg.conf
 cp ${DIR}/os/pkg.conf /usr/local/etc/
 if [[ $? -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Install Packages
-echo "Installing Packages"
+e_note "Installing Packages"
 _exitCode=0
 pkg install -y vim-lite | tee -a "${LOGFILE}"
 _exitCode=$(( ${PIPESTATUS[0]} & $? ))
@@ -297,66 +311,34 @@ _exitCode=$(( ${PIPESTATUS[0]} & $? ))
 pkg install -y unbound | tee -a "${LOGFILE}"
 _exitCode=$(( ${PIPESTATUS[0]} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Configure /etc/rc.conf
-echo "Configuring /etc/rc.conf"
+e_note "Configuring /etc/rc.conf"
 _exitCode=0
 rm /etc/rc.conf
 _exitCode=$(( ${_exitCode} & $? ))
 cp ${DIR}/os/rc.conf /etc/
 _exitCode=$(( ${_exitCode} & $? ))
 # change the network information in rc.conf
-sed -i '' "s|ifconfig_bce0=.*|ifconfig_${EXT_INTERFACE}=\"inet ${EXT_IP} netmask ${EXT_MASK}\"|g" "/etc/rc.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|defaultrouter=.*|defaultrouter=\"${EXT_GATEWAY}\"|g" "/etc/rc.conf"
-_exitCode=$(( ${_exitCode} & $? ))
 sed -i '' "s|ifconfig_bridge0=.*|ifconfig_bridge0=\"addm ${EXT_INTERFACE} up\"|g" "/etc/rc.conf"
 _exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|hostname=.*|hostname=\"${MY_HOSTNAME}\"|g" "/etc/rc.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|hostname=.*|hostname=\"${MY_HOSTNAME}\"|g" "/etc/rc.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|ifconfig_bridge1=.*|ifconfig_bridge1=\"inet ${_hostPrivateIP} netmask $( cidr2netmask "${CONTAINER_SUBNET_CIDR}" )\"|g" "/etc/rc.conf"
-_exitCode=$(( ${_exitCode} & $? ))
 if [[ $? -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
-fi
-
-##########
-
-# Enable the cloned interfaces
-echo "Enabling cloned interface(s)"
-service netif cloneup
-if [[ $? -eq 0 ]]; then
-    echo "Success"
-else
-    echo "Failed"
-fi
-
-##########
-
-# Configure IP on Host to communicate with Containers
-echo "Configuring bridge1"
-ifconfig bridge1 inet ${_hostPrivateIP} netmask $( cidr2netmask "${CONTAINER_SUBNET_CIDR}" )
-if [[ $? -eq 0 ]]; then
-    echo "Success"
-else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Configure SSH
 _exitCode=0
-echo "Configuring SSHD"
+e_note "Configuring SSHD"
 rm /etc/ssh/sshd_config
 _exitCode=$(( ${_exitCode} & $? ))
 cp ${DIR}/os/sshd_config /etc/ssh/sshd_config
@@ -364,29 +346,27 @@ _exitCode=$(( ${_exitCode} & $? ))
 # change the networking data for ssh
 sed -i '' "s|ListenAddress .*|ListenAddress ${EXT_IP}|g" "/etc/ssh/sshd_config"
 _exitCode=$(( ${_exitCode} & $? ))
-service sshd restart
-_exitCode=$(( ${_exitCode} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Configure Vim
-echo "Configuring vim"
+e_note "Configuring VIM"
 cp ${DIR}/os/vimrc /usr/local/share/vim/vimrc
 if [[ $? -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Configure IPFW
-echo "Configuring IPFW"
+e_note "Configuring IPFW"
 _exitCode=0
 mkdir -p /usr/local/etc
 _exitCode=$(( ${_exitCode} & $? ))
@@ -396,37 +376,28 @@ cp ${DIR}/os/ipfw.layer4 /usr/local/etc/ipfw.layer4
 _exitCode=$(( ${_exitCode} & $? ))
 cp ${DIR}/os/ipfw.vars /usr/local/etc/ipfw.vars
 _exitCode=$(( ${_exitCode} & $? ))
-# update the networking data
-sed -i '' "s|eif=.*|eif=\"${EXT_INTERFACE}\"|g" "/usr/local/etc/ipfw.vars"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|eip=.*|eip=\"${EXT_IP}\"|g" "/usr/local/etc/ipfw.vars"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|clsn=.*|clsn=\"${CONTAINER_SUBNET}\"|g" "/usr/local/etc/ipfw.vars"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|p7ip=.*|p7ip=\"${_hostPrivateIP}\"|g" "/usr/local/etc/ipfw.vars"
-_exitCode=$(( ${_exitCode} & $? ))
 
 # Removed ipfw start for now due to its ability to disconnect a user from their host
 #service ipfw start
 #_exitCode=$(( ${_exitCode} & $? ))
 if [[ $_exitCode -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Configure OpenNTP
 _exitCode=0
-echo "Configuring OpenNTP"
+e_note "Configuring OpenNTP"
 rm /usr/local/etc/ntpd.conf
 cp ${DIR}/os/ntpd.conf /usr/local/etc/
 _exitCode=$(( ${_exitCode} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
@@ -437,44 +408,44 @@ fi
 ##########
 
 # Change kernel options
-echo "Configuring kernel options"
+e_note "Configuring kernel options"
 _exitCode=0
 rm /boot/loader.conf
 cp ${DIR}/os/loader.conf /boot/
 if [[ $? -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
-echo "Configuring sysctl"
+e_note "Configuring Sysctl"
 rm /etc/sysctl.conf
 cp ${DIR}/os/sysctl.conf /etc/
 if [[ $? -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Configure fstab to fix bash bug
 if [[ $( grep "/dev/fd" /etc/fstab | wc -l ) -eq 0 ]]; then
-    echo "Configuring bash"
+    e_note "Configuring Bash"
     echo "fdesc                   /dev/fd fdescfs rw              0       0" >> /etc/fstab
     if [[ $? -eq 0 ]]; then
-        echo "Success"
+        e_success "Success"
     else
-        echo "Failed"
+        e_error "Failed"
     fi
 else
-   echo "Bash already configured"
+   e_note "Bash already configured"
 fi
 
 ##########
 
 # Configure HTTP Proxy
-echo "Configuring HTTP Proxy" 
+e_note "Configuring Layer 7 (HTTP) Proxy" 
 _exitCode=0
 mkdir -p /usr/local/etc/nginx/access
 _exitCode=$(( ${_exitCode} & $? ))
@@ -490,40 +461,31 @@ cp ${DIR}/proxy/nginx.conf /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
 cp -R ${DIR}/proxy/proxy_pass /usr/local/etc/nginx/
 _exitCode=$(( ${_exitCode} & $? ))
-service nginx start
-_exitCode=$(( ${_exitCode} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Configure Unbound DNS
-echo "Configuring Unbound"
+e_note "Configuring Unbound"
 _exitCode=0
 mkdir -p /usr/local/etc/unbound/configs
 _exitCode=$(( ${_exitCode} & $? ))
 cp ${DIR}/dns/unbound.conf /usr/local/etc/unbound/
 _exitCode=$(( ${_exitCode} & $? ))
-# change the ip address unbound binds to
-sed -i '' "s|interface:.*|interface: ${_hostPrivateIP}|g" "/usr/local/etc/unbound/unbound.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-# change the access control from the default subnet to the new one
-sed -i '' "s|access-control: 10.0.0.0/16 allow|access-control: ${CONTAINER_SUBNET} allow|g" "/usr/local/etc/unbound/unbound.conf"
-service unbound start
-_exitCode=$(( ${_exitCode} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 ##########
 
 # Get tredly-build and install it
-echo "Configuring Tredly-build"
+e_note "Configuring Tredly-build"
 _exitCode=1
 cd /tmp 
 # if the directory for tredly-build already exists, then delete it and start again
@@ -540,21 +502,11 @@ done
 cd /tmp/tredly-build
 ./tredly.sh install clean
 _exitCode=$?
-# change the default container subnet
-sed -i '' "s|lifNetwork=.*|lifNetwork=${CONTAINER_SUBNET}|g" "/usr/local/etc/tredly/tredly-host.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|wifPhysical=.*|wifPhysical=${EXT_INTERFACE}|g" "/usr/local/etc/tredly/tredly-host.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|dns=.*|dns=${_hostPrivateIP}|g" "/usr/local/etc/tredly/tredly-host.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|httpproxy=.*|httpproxy=${_hostPrivateIP}|g" "/usr/local/etc/tredly/tredly-host.conf"
-_exitCode=$(( ${_exitCode} & $? ))
-sed -i '' "s|vnetdefaultroute=.*|vnetdefaultroute=${_hostPrivateIP}|g" "/usr/local/etc/tredly/tredly-host.conf"
 _exitCode=$(( ${_exitCode} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 # initialise tredly
@@ -562,33 +514,8 @@ tredly init
 
 ##########
 
-# set up tredly api
-echo "Configuring Tredly-API"
-_exitCode=1
-cd /tmp 
-# if the directory for tredly-api already exists, then delete it and start again
-if [[ -d "/tmp/tredly-api" ]]; then
-    echo "Cleaning previously downloaded Tredly-API"
-    rm -rf /tmp/tredly-api
-fi
-
-while [[ ${_exitCode} -ne 0 ]]; do
-    git clone ${TREDLYAPI_GIT_URL}
-    _exitCode=$?
-done
-
-cd /tmp/tredly-api
-./install.sh
-if [[ $? -eq 0 ]]; then
-    echo "Success"
-else
-    echo "Failed"
-fi
-
-##########
-
 # Setup crontab
-echo "Configuring crontab"
+e_note "Configuring Crontab"
 _exitCode=0
 mkdir -p /usr/local/host/
 _exitCode=$(( ${_exitCode} & $? ))
@@ -597,9 +524,9 @@ _exitCode=$(( ${_exitCode} & $? ))
 crontab /usr/local/host/crontab
 _exitCode=$(( ${_exitCode} & $? ))
 if [[ ${_exitCode} -eq 0 ]]; then
-    echo "Success"
+    e_success "Success"
 else
-    echo "Failed"
+    e_error "Failed"
 fi
 
 
@@ -608,7 +535,7 @@ if [[ ${_vimageInstalled} -ne 0 ]]; then
 else
     echo "Recompiling kernel as this kernel does not have VIMAGE built in"
     echo "Please note this will take some time."
-    sleep_with_progress 5
+    
     # lets compile the kernel for VIMAGE!
     
     # download the source if the user said yes
@@ -641,7 +568,7 @@ else
         _useCpus=1
     fi
 
-    echo "Compiling kernel using ${_useCpus} CPUs..."
+    e_note "Compiling kernel using ${_useCpus} CPUs..."
     make -j${_useCpus} buildkernel KERNCONF=TREDLY
     
     # only install the kernel if the build succeeded
@@ -651,3 +578,52 @@ else
 
 fi
 
+
+
+##########
+# Enable the cloned interfaces
+e_note "Enabling Cloned Interface(s)"
+service netif cloneup
+if [[ $? -eq 0 ]]; then
+    e_success "Success"
+else
+    e_error "Failed"
+fi
+
+# now that everything is installed, set up the networking
+# Configure IP on Host to communicate with Containers
+e_note "Configuring bridge1 interface"
+ifconfig bridge1 inet ${_hostPrivateIP} netmask $( cidr2netmask "${CONTAINER_SUBNET_CIDR}" )
+if [[ $? -eq 0 ]]; then
+    e_success "Success"
+else
+    e_error "Failed"
+fi
+
+# use tredly to set network details
+e_note "Setting Host Network"
+tredly config host network "${EXT_INTERFACE}" "${EXT_IP}/$( netmask2cidr "${EXT_MASK}" )" "${EXT_GATEWAY}" > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    e_success "Success"
+else
+    e_error "Failed"
+fi
+
+e_note "Setting Host Hostname"
+tredly config host hostname "${MY_HOSTNAME}" > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    e_success "Success"
+else
+    e_error "Failed"
+fi
+
+e_note "Setting Container Subnet"
+tredly config container subnet "${CONTAINER_SUBNET}" > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    e_success "Success"
+else
+    e_error "Failed"
+fi
+
+#####
+# TODO: start services? This fails at the moment due to bridge1 not existing
