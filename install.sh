@@ -33,8 +33,10 @@ pkg install -y bash
 
 if test $? == 0
 then
+    echo -e "\e[35m"
     echo "################"
     echo "Install complete"
     echo "################"
     echo "Please reboot your host for the new kernel and settings to take effect."
+    echo -e "\e[39m"
 fi
