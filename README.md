@@ -20,7 +20,7 @@ The server technology to run the containers, built on FreeBSD. Tredly Host conta
 
 Validates and Builds containers on Tredly-Host
 
-You can find out more information about Tredly at **<http://tredly.com>**
+You can find out more information about Tredly at **<http://www.tredly.com>**
 
 ## Requirements
 
@@ -41,7 +41,7 @@ To install Tredly, your server must be running **FreeBSD 10.3 (or above) as Root
 
 ## Configuration
 
-Tredly-Host can be configured in a number of ways, depending on what you are trying to achieve. We recommend you read the wiki article https://github.com/tredly/tredly-host/wiki/Tredly-Overview to understand the options you can configure in Tredly.
+Tredly-Host can be configured in a number of ways, depending on what you are trying to achieve. We recommend you read the wiki article <http://www.tredly.com/docs/?cat=4> to understand the options you can configure in Tredly.
 
 
 ## Usage
