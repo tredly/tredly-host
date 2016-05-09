@@ -67,19 +67,19 @@ function cmn_assert_running_as_root {
 function is_int() {
     local re='^[0-9]+$'
     if ! [[ "${1}" =~ ${re} ]] ; then
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 function is_float() {
     local re='^[0-9]*\.?[0-9]+$'
     if ! [[ "${1}" =~ ${re} ]] ; then
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 ## Strips characters from the right side of a string
@@ -107,7 +107,7 @@ function rtrim() {
 
     shopt -s extglob
     echo "${input%%+(${delim})}"
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 ## Strips characters from the left side of a string
@@ -135,7 +135,7 @@ function ltrim() {
 
     shopt -s extglob
     echo "${input##+(${delim})}"
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 function str_replace() {
@@ -147,13 +147,13 @@ function str_replace() {
     ## Handle when input is an empty string.
     if [ -z "${input}" ]; then
         echo ""
-        return $E_SUCCESS
+        return ${E_SUCCESS}
     fi
 
 
     echo "${input//$needle/$replacement}"
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 ## Strips characters from the start and end if a string
@@ -186,7 +186,7 @@ function trim() {
 
     echo "${trimmed}"
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 function create_dir() {
@@ -194,18 +194,18 @@ function create_dir() {
 
     if [[ -d "${path}" ]]; then
         e_warning "Path \`${path}\` already exists. Skipping."
-        return $E_SUCCESS
+        return ${E_SUCCESS}
     fi
 
     mkdir -p "${path}"
 
     if [[ ! -d "${path}" ]]; then
         e_error "Unable to create folder ${path}"
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
     e_success "Created ${path}"
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 function max() {
@@ -215,7 +215,7 @@ function max() {
         echo "${2}"
     fi
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 function min() {
@@ -225,7 +225,7 @@ function min() {
         echo "${2}"
     fi
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 function copy_files() {
@@ -244,7 +244,7 @@ function copy_files() {
     if [[ ! -d "${_destDir}" ]]; then
         e_verbose "Creating folder ${_destDir}"
         mkdir -p "${_destDir}" 2> /dev/null
-        if [[ $? -ne $E_SUCCESS ]]; then
+        if [[ $? -ne ${E_SUCCESS} ]]; then
             e_error "Failed to create folder \`${_destDir}\` to copy \`${src}\` into"
         fi
     fi
@@ -252,27 +252,27 @@ function copy_files() {
     # copy the file
     cp -R "${src}" "${dest}" 2> /dev/null
 
-    if [[ $? -ne $E_SUCCESS ]]; then
+    if [[ $? -ne ${E_SUCCESS} ]]; then
         e_error "Unable to copy \`${src}\` to \`${dest}\`"
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
     e_verbose "Copied \`${src}\` to \`${dest}\`"
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 function is_os() {
     if [[ "${OSTYPE}" == $1* ]]; then
-        return $E_SUCCESS
+        return ${E_SUCCESS}
     fi
-    return $E_ERROR
+    return ${E_ERROR}
 }
 
 function type_exists() {
     if [ $(type -P $1) ]; then
-        return $E_SUCCESS
+        return ${E_SUCCESS}
     fi
-    return $E_ERROR
+    return ${E_ERROR}
 }
 
 ## Takes a string and makes it ready for use in a regular expression
@@ -288,7 +288,7 @@ function type_exists() {
 ##     string
 function regex_escape() {
     echo "${1}" | sed 's/[^[:alnum:]_-]/\\&/g'
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 ## Takes an integer representing seconds. It then counds from 1 to
@@ -313,7 +313,7 @@ function sleep_with_progress() {
     done
 
     printf "\n"
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 ## Removes all lines containing $containing from $file, where $file is the full path to the file
@@ -329,16 +329,16 @@ function remove_lines_from_file() {
 
         # if we arent removing the file then return
         if [[ "${deleteEmptyFile}" != "true" ]]; then
-            return $E_SUCCESS
+            return ${E_SUCCESS}
         fi
     else
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
     # check if the user wanted to delete the file if it is empty
     if [[ "${deleteEmptyFile}" == "true" ]]; then
         delete_file_if_empty "${file}"
-        return $E_SUCCESS
+        return ${E_SUCCESS}
     fi
 }
 
@@ -466,7 +466,7 @@ function add_data_to_start_of_file_if_not_exists() {
         return $?
     fi
 
-    return $E_ERROR
+    return ${E_ERROR}
 }
 
 ## returns data between two given strings
@@ -536,9 +536,9 @@ function string_contains_char() {
     local _char="${2}"
 
     if echo "${_input}" | grep -q "${_char}"; then
-        return $E_SUCCESS
+        return ${E_SUCCESS}
     else
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 }
 
@@ -568,11 +568,11 @@ function extract_value_from_csv() {
             # found it, so extract the key and return
             echo $(rcut "${keyValue}" '=')
 
-            return $E_SUCCESS
+            return ${E_SUCCESS}
         fi
     done
 
-    return $E_ERROR
+    return ${E_ERROR}
 }
 
 # trims a given string from the end of another string
@@ -615,7 +615,7 @@ function make_container_dirname() {
         echo "${_containerGroupName}_${_containerName}_${_env}"
     fi
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 # converts seconds to days hours minutes
@@ -787,7 +787,7 @@ function get_last_usable_ip4_in_network() {
     b4=$(( b4 - 1 ))
 
     printf "%d.%d.%d.%d" "${b1}" "${b2}" "${b3}" "${b4}"
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 
@@ -795,11 +795,17 @@ function get_last_usable_ip4_in_network() {
 function is_valid_ip4() {
     # extract the ip4 address in case we were passed a netmask or cidr
     local _ip4=$( lcut "${1}" '/' )
+    
+    if [[ -z "${_ip4}" ]]; then
+        return ${E_ERROR}
+    fi
+    
+
 
     # make sure the string contains 3 dots
-    local numDots=$(grep -o -F '.' <<< "${_ip4}" | wc -l)
+    local numDots=$( echo "${_ip4}" | grep -o -F '.' | wc -l )
     if [[ ${numDots} -ne 3 ]]; then
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
     # explode the ip into its elements and loop over them
@@ -807,25 +813,35 @@ function is_valid_ip4() {
     for value in ${_ip4}
     do
         # if this value is < 0 or > 255 then its bogus
-        if [[ "$value" -lt "0" || "$value" -gt "255" || ! "$value" =~ ^[0-9]{1,3}$ ]]; then
-            return $E_ERROR
+        if [[ "$value" -lt "0" || "$value" -gt "255" ]]; then
+            return ${E_ERROR}
         fi
     done
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 # takes an ip address, and checks if it is valid or not
 function is_valid_cidr() {
     if ! is_int "${1}"; then
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
     if [[ "${1}" -lt "0" ]] || [[ "${1}" -gt "32" ]]; then
-        return $E_ERROR
+        return ${E_ERROR}
     fi
 
-    return $E_SUCCESS
+    return ${E_SUCCESS}
+}
+
+function is_valid_hostname() {
+    local _hostname="${1}"
+    
+    if [[ "${_hostname}" =~ ^[A-Za-z0-9_-]+$ ]]; then
+        return ${E_SUCCESS}
+    else
+        return ${E_ERROR}
+    fi
 }
 
 # Given an ip address and netmask, calculate the broadcast address
@@ -867,7 +883,7 @@ function get_last_usable_ip4_in_network() {
     b4=$(( b4 - 1 ))
 
     printf "%d.%d.%d.%d" "${b1}" "${b2}" "${b3}" "${b4}"
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 # takes a cidr (in the form of 16,24,32 etc) and outputs its equivalent netmask
@@ -888,7 +904,7 @@ function cidr2netmask() {
     done
 
     echo $mask
-    return $E_SUCCESS
+    return ${E_SUCCESS}
 }
 
 # Converts a netmask to a cidr
@@ -899,4 +915,63 @@ function netmask2cidr() {
    x=${1%%$3*}
    echo $(( $2 + (${#x}/4) ))
    return ${E_SUCCESS}
+}
+
+
+# gets a list of interfaces which could possibly be external interfaces
+function getExternalInterfaces() {
+    ifconfig | grep "^[a-zA-Z].*[0-9].*:" | grep -v "^lo0:" | grep -v "^bridge[0-9].*:" | awk '{ print $1 }' | tr -d :
+}
+
+# returns the ip address for the given interface
+function getInterfaceIP() {
+    ifconfig ${1} | grep 'inet ' | awk '{ print $2 }'
+}
+
+# returns an interface's netmask
+function getInterfaceNetmask() {
+    local hexMask=$( ifconfig ${1} | grep 'inet ' | awk '{ print $4 }' | cut -d 'x' -f 2 )
+
+    local netmask=$(( 16#${hexMask:0:2} )).$(( 16#${hexMask:2:2} )).$(( 16#${hexMask:4:2} )).$(( 16#${hexMask:6:2} ))
+
+    echo "${netmask}"
+}
+
+# returns an interface's CIDR
+function getInterfaceCIDR() {
+    local _netmask=$( getInterfaceNetmask "${1}" )
+    
+    echo "$( netmask2cidr "${_netmask}" )"
+}
+
+# returns the default gateway on this host
+function getDefaultGateway() {
+    netstat -r4n | grep '^default' | awk '{ print $2 }'
+}
+
+
+# checks one version against another. if major or minor versions mismatch then error. Doesnt carea bout hotfix
+function versionCheck() {
+    _version1="${1}"
+    _version2="${2}"
+
+    # extract the major and minor versions from tredly and tredlyfile version
+    local _regex="^([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)"
+    [[ ${_version1} =~ ${_regex} ]]
+    
+    local __version1Major="${BASH_REMATCH[1]}"
+    local __version1Minor="${BASH_REMATCH[2]}"
+    
+    # extract the major and minor versions from tredlyfile version
+    [[ ${_version2} =~ ${_regex} ]]
+    local _version2Major="${BASH_REMATCH[1]}"
+    local _version2Minor="${BASH_REMATCH[2]}"
+
+    # ensure the major and minor versions match
+    if [[ "${_version1Major}" != "${_version2Major}" ]] || \
+       [[ "${_version1Minor}" != "${_version2Minor}" ]]; then
+            return ${E_ERROR}
+    fi
+    
+    return ${E_SUCCESS}
 }
