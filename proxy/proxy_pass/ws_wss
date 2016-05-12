@@ -7,3 +7,4 @@ proxy_set_header X-Forwarded-Proto $scheme;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection "upgrade";
 proxy_read_timeout 600;
+proxy_intercept_errors on;
