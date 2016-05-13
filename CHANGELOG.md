@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.10.3] - 2016-05-13
+#### Fixed
+- Allow dot characters in hostname (tredly/tredly-build#39)
+
+#### Changed
+- Installation throws an error if the hostname length is longer than 255 characters
+- Improved regular expression matching for hostnames.
+
 ## [0.10.2] - 2016-05-12
 #### Added
 - Automatically whitelisting IP addresses of Tredly Command Center
@@ -42,5 +50,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - Initial release of Tredly
 
-[0.10.2]: https://github.com/tredly/tredly-build/compare/v0.10.0...v0.10.2
-[0.10.0]: https://github.com/tredly/tredly-build/compare/v0.9.0...v0.10.0
+[0.10.3]: https://github.com/tredly/tredly-host/compare/v0.10.2...v0.10.3
+[0.10.2]: https://github.com/tredly/tredly-host/compare/v0.10.0...v0.10.2
+[0.10.0]: https://github.com/tredly/tredly-host/compare/v0.9.0...v0.10.0
