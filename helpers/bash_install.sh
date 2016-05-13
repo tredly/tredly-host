@@ -2,8 +2,8 @@
 
 set -o pipefail
 
-_VERSIONNUMBER="0.10.2"
-_VERSIONDATE="May 12 2016"
+_VERSIONNUMBER="0.10.3"
+_VERSIONDATE="May 13 2016"
 
 # where to send the logfile
 LOGFILE="/var/log/tredly-install.log"
@@ -32,6 +32,7 @@ _configOptions[2]="$( getInterfaceIP "${_externalInterfaces[0]}" )/$( getInterfa
 _configOptions[3]="$( getDefaultGateway )"
 _configOptions[4]="${HOSTNAME}"
 _configOptions[5]="10.99.0.0/16"
+# TODO: remove hard coded ip and subtract from the given container subnet
 API_GUI_CONTAINER="10.99.0.253"
 
 
@@ -483,8 +484,15 @@ else
 fi
 
 ##########
-
 # use tredly to set network details
+e_note "Setting Container Subnet"
+tredly-host config container subnet "${_configOptions[5]}"
+if [[ $? -eq 0 ]]; then
+    e_success "Success"
+else
+    e_error "Failed"
+fi
+
 e_note "Setting Host Network"
 tredly-host config host network "${_configOptions[1]}" "${_configOptions[2]}" "${_configOptions[3]}"
 if [[ $? -eq 0 ]]; then
@@ -495,14 +503,6 @@ fi
 
 e_note "Setting Host Hostname"
 tredly-host config host hostname "${_configOptions[4]}"
-if [[ $? -eq 0 ]]; then
-    e_success "Success"
-else
-    e_error "Failed"
-fi
-
-e_note "Setting Container Subnet"
-tredly-host config container subnet "${_configOptions[5]}"
 if [[ $? -eq 0 ]]; then
     e_success "Success"
 else
