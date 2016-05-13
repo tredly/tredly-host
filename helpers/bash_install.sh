@@ -2,8 +2,8 @@
 
 set -o pipefail
 
-_VERSIONNUMBER="0.10.2"
-_VERSIONDATE="May 12 2016"
+_VERSIONNUMBER="0.10.3"
+_VERSIONDATE="May 13 2016"
 
 # where to send the logfile
 LOGFILE="/var/log/tredly-install.log"
