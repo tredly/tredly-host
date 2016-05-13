@@ -836,12 +836,15 @@ function is_valid_cidr() {
 
 function is_valid_hostname() {
     local _hostname="${1}"
-    
-    if [[ "${_hostname}" =~ ^[A-Za-z0-9_-]+$ ]]; then
-        return ${E_SUCCESS}
-    else
+    # make sure length isnt > 255 chars
+    if [[ ${#_hostname} -gt 255 ]]; then
         return ${E_ERROR}
+    # match a valid hostname
+    elif [[ "${_hostname}" =~ ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$ ]]; then
+        return ${E_SUCCESS}
     fi
+    
+    return ${E_ERROR}
 }
 
 # Given an ip address and netmask, calculate the broadcast address
