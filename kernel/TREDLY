@@ -1,7 +1,9 @@
 include GENERIC
 ident TREDLY
 
-nooptions       SCTP   # Stream Control Transmission Protocol
-options         VIMAGE # VNET/Vimage support
-options         RACCT  # Resource containers
-options         RCTL   # same as above
+nooptions	SCTP   # Stream Control Transmission Protocol
+options		VIMAGE # VNET/Vimage support
+options		RACCT  # Resource containers
+options		RCTL   # same as above
+nooptions	RACCT_DEFAULT_TO_DISABLED
+nomakeoptions	DEBUG
