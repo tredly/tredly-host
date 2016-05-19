@@ -28,6 +28,14 @@ show_help "Available Commands:
 "
 
 case "${_SUBCOMMANDS[0]}" in
+    api)
+        if [[ ${#_SUBCOMMANDS[@]} -gt 1 ]]; then
+            exit_with_error "Too many arguments received."
+        fi
+        cd /usr/local/sbin/tredly-api
+        
+        npm run config
+    ;;
     container)
         case "${_SUBCOMMANDS[1]}" in
             subnet)
@@ -60,14 +68,19 @@ case "${_SUBCOMMANDS[0]}" in
                     e_error "Failed"
                 fi
             ;;
-            addAPIwhitelist)
+            clearAPIwhitelist)
                 # check the number of args received
                 if [[ ${#_SUBCOMMANDS[@]} -gt 2 ]]; then
                     exit_with_error "Too many arguments received."
                 fi
                 
                 # remove the ipfw rule
-                ipfw -q delete 150
+                ipfw table 20 flush
+                if [[ $? -eq 0 ]]; then
+                    e_success "Success"
+                else
+                    e_error "Failed"
+                fi
             ;;
             *)
                 exit_with_error "Unknown config firewall command '${_SUBCOMMANDS[1]}'"

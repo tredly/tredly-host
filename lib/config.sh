@@ -4,7 +4,6 @@
 declare -A _CONF_INSTALL
 declare -A _CONF_COMMON
 
-
 # Validates a common config file, for example tredly-host.conf
 function common_conf_validate() {
 
@@ -118,10 +117,46 @@ function install_conf_validate() {
         fi
     done
     
-    # match versions
-    #if ! versionCheck "${_CONF_INSTALL[versionNumber]}" "${VERSIONNUMBER}"; then
-        #exit_with_error "Install config file does not match version ${VERSIONNUMBER}"
-    #fi
+    # Validate the values from the file
+    if [[ -n "${_CONF_INSTALL[externalInterface]}" ]]; then
+        if ! network_interface_exists "${_CONF_INSTALL[externalInterface]}"; then
+            exit_with_error "External Interface ${_CONF_INSTALL[externalInterface]} does not exist. Please check conf/install.conf"
+        fi
+    fi
+
+    if [[ -n "${_CONF_INSTALL[externalIP]}" ]]; then
+        regex="^(.*)\/([[:digit:]]+)$"
+        [[ ${_CONF_INSTALL[externalIP]} =~ ${regex} ]]
+
+        # validate the values
+        if ! is_valid_ip4 "${BASH_REMATCH[1]}" || ! is_valid_cidr "${BASH_REMATCH[2]}"; then
+            exit_with_error "External IP ${_CONF_INSTALL[externalIP]} is not a valid IP address. Please check conf/install.conf"
+        fi
+    fi
+
+    if [[ -n "${_CONF_INSTALL[externalGateway]}" ]]; then
+        if ! is_valid_ip4 "${_CONF_INSTALL[externalGateway]}"; then
+            exit_with_error "External gateway ${_CONF_INSTALL[externalGateway]} is not a valid IP address. Please check conf/install.conf"
+        fi
+    fi
+
+    if [[ -n "${_CONF_INSTALL[hostname]}" ]]; then
+        if ! is_valid_hostname "${_CONF_INSTALL[hostname]}"; then
+            exit_with_error "Hostname ${_CONF_INSTALL[hostname]} is not valid. Please check conf/install.conf"
+        fi
+    fi
+
+
+    if [[ -n "${_CONF_INSTALL[containerSubnet]}" ]]; then
+        regex="^(.*)\/([[:digit:]]+)$"
+        [[ ${_CONF_INSTALL[containerSubnet]} =~ ${regex} ]]
+
+        # validate the values
+        if ! is_valid_ip4 "${BASH_REMATCH[1]}" || ! is_valid_cidr "${BASH_REMATCH[2]}"; then
+
+            exit_with_error "Container subnet ${_CONF_INSTALL[containerSubnet]} is not valid. Please check conf/install.conf"
+        fi
+    fi
 
     return ${E_SUCCESS}
 }

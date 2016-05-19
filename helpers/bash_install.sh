@@ -2,8 +2,8 @@
 
 set -o pipefail
 
-_VERSIONNUMBER="0.10.3"
-_VERSIONDATE="May 13 2016"
+_VERSIONNUMBER="0.10.4"
+_VERSIONDATE="May 20 2016"
 
 # where to send the logfile
 LOGFILE="/var/log/tredly-install.log"
@@ -25,16 +25,6 @@ _vimageInstalled=$( sysctl kern.conftxt | grep '^options[[:space:]]VIMAGE$' | wc
 
 ###############################
 declare -a _configOptions
-# set some defaults
-_configOptions[0]=''
-_configOptions[1]="${_externalInterfaces[0]}"
-_configOptions[2]="$( getInterfaceIP "${_externalInterfaces[0]}" )/$( getInterfaceCIDR "${_externalInterfaces[0]}" )"
-_configOptions[3]="$( getDefaultGateway )"
-_configOptions[4]="${HOSTNAME}"
-_configOptions[5]="10.99.0.0/16"
-# TODO: remove hard coded ip and subtract from the given container subnet
-API_GUI_CONTAINER="10.99.0.253"
-
 
 # check if the install config file exists
 if [[ ! -f "${DIR}/conf/install.conf" ]]; then
@@ -43,6 +33,41 @@ fi
 
 # load the config file
 install_conf_parse "install"
+
+_configOptions[0]=''
+# check if some values are set, and if they arent then consult the host for the details
+if [[ -z "${_CONF_INSTALL[externalInterface]}" ]]; then
+    _configOptions[1]="${_externalInterfaces[0]}"
+else
+    _configOptions[1]="${_CONF_INSTALL[externalInterface]}"
+fi
+
+if [[ -z "${_CONF_INSTALL[externalIP]}" ]]; then
+    _configOptions[2]="$( getInterfaceIP "${_externalInterfaces[0]}" )/$( getInterfaceCIDR "${_externalInterfaces[0]}" )"
+else
+    _configOptions[2]="${_CONF_INSTALL[externalIP]}"
+fi
+
+if [[ -z "${_CONF_INSTALL[externalGateway]}" ]]; then
+    _configOptions[3]="$( getDefaultGateway )"
+else
+    _configOptions[3]="${_CONF_INSTALL[externalGateway]}"
+fi
+
+if [[ -z "${_CONF_INSTALL[hostname]}" ]]; then
+    _configOptions[4]="${HOSTNAME}"
+else
+    _configOptions[4]="${_CONF_INSTALL[hostname]}"
+fi
+
+if [[ -z "${_CONF_INSTALL[containerSubnet]}" ]]; then
+    _configOptions[5]="10.99.0.0/16"
+else
+    _configOptions[5]="${_CONF_INSTALL[containerSubnet]}"
+fi
+
+# TODO: remove hard coded ip and subtract from the given container subnet
+API_GUI_CONTAINER="10.99.0.253"
 
 # set locations from the file
 _configOptions[6]="${_CONF_INSTALL[tredlyBuildGit]}"
@@ -65,8 +90,11 @@ _configOptions[10]=$( str_to_lower "${_CONF_INSTALL[downloadKernelSource]}" )
     #fi
 #fi
 
-# run the menu
-tredlyHostMenuConfig
+# check if we are doing an unattended installation or not
+if [[ "${_CONF_INSTALL[unattendedInstall]}" != "yes" ]]; then
+    # run the menu
+    tredlyHostMenuConfig
+fi
 
 # extract the net and cidr from the container subnet we are using
 CONTAINER_SUBNET_NET="$( lcut "${_configOptions[5]}" '/')"
@@ -122,15 +150,18 @@ else
         echo "Cleaning previously downloaded Tredly-API"
         rm -rf /tmp/tredly-api
     fi
-
+    
     while [[ ${_exitCode} -ne 0 ]]; do
         git clone -b "${_configOptions[9]}" ${_configOptions[8]}
         _exitCode=$?
     done
-
+    
     cd /tmp/tredly-api
-    ./install.sh
-    if [[ $? -eq 0 ]]; then
+    
+    # install the API and extract the random password so we can present this to the user at the end of install
+    apiPassword="$( ./install.sh | grep "^Your API password is: " | cut -d':' -f 2 | sed -e 's/^[ \t]*//' )"
+    
+    if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
         e_success "Success"
     else
         e_error "Failed"
@@ -480,46 +511,49 @@ else
     else
         exit_with_error "Failed to build kernel"
     fi
+fi
 
+# delete the src.txz file from /tmp
+if [[ -f "/tmp/src.txz" ]]; then
+    rm -f /tmp/src.txz
 fi
 
 ##########
 # use tredly to set network details
 e_note "Setting Container Subnet"
 tredly-host config container subnet "${_configOptions[5]}"
-if [[ $? -eq 0 ]]; then
-    e_success "Success"
-else
-    e_error "Failed"
-fi
+
 
 e_note "Setting Host Network"
 tredly-host config host network "${_configOptions[1]}" "${_configOptions[2]}" "${_configOptions[3]}"
-if [[ $? -eq 0 ]]; then
-    e_success "Success"
-else
-    e_error "Failed"
-fi
+
 
 e_note "Setting Host Hostname"
 tredly-host config host hostname "${_configOptions[4]}"
-if [[ $? -eq 0 ]]; then
-    e_success "Success"
-else
-    e_error "Failed"
-fi
+
 
 # if tredly api is enabled then add to whitelist
-if [[ -n "${_configOptions[8]}" ]]; then
-    e_note "Whitelisting IP addresses for API"
-    tredly-host config firewall addAPIwhitelist ${API_GUI_CONTAINER}
+#if [[ -n "${_configOptions[8]}" ]]; then
+    #e_note "Whitelisting IP addresses for API"
+    #tredly-host config firewall addAPIwhitelist ${API_GUI_CONTAINER}
     
-    if [[ $? -eq 0 ]]; then
-        e_success "Success"
-    else
-        e_error "Failed"
-    fi
-fi
+    #if [[ $? -eq 0 ]]; then
+        #e_success "Success"
+    #else
+        #e_error "Failed"
+    #fi
+#fi
 
-#####
-# TODO: start services? This fails at the moment due to bridge1 not existing
+# echo out confirmation message to user
+e_header "Install Complete"
+echo -e "\e[35m"
+echo "Your API Password is: ${apiPassword}"
+echo ""
+echo "To change this password, please run the command 'tredly-host config api'"
+echo "To whitelist addresses to access the API, please run the command 'tredly-host config firewall addAPIwhitelist <ip address>'"
+echo ""
+echo "Please note that the SSH port has changed, use the following to connect to your host after reboot:"
+echo "ssh -p 65222 tredly@$( lcut "${_configOptions[2]}" "/" )"
+echo ""
+echo "Please reboot your host for the new kernel and settings to take effect."
+echo -e "\e[39m"
