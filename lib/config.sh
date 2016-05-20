@@ -4,7 +4,6 @@
 declare -A _CONF_INSTALL
 declare -A _CONF_COMMON
 
-
 # Validates a common config file, for example tredly-host.conf
 function common_conf_validate() {
 
@@ -118,10 +117,53 @@ function install_conf_validate() {
         fi
     done
     
-    # match versions
-    #if ! versionCheck "${_CONF_INSTALL[versionNumber]}" "${VERSIONNUMBER}"; then
-        #exit_with_error "Install config file does not match version ${VERSIONNUMBER}"
-    #fi
+    # Validate the external interface
+    if [[ -n "${_CONF_INSTALL[externalInterface]}" ]] || [[ "$( str_to_lower "${_CONF_INSTALL[unattendedInstall]}")" == "yes" ]]; then
+        if ! network_interface_exists "${_CONF_INSTALL[externalInterface]}"; then
+            exit_with_error "External Interface '${_CONF_INSTALL[externalInterface]}' does not exist. Please check conf/install.conf"
+        fi
+    fi
+
+    # validate the external ip
+    if [[ -n "${_CONF_INSTALL[externalIP]}" ]] || [[ "$( str_to_lower "${_CONF_INSTALL[unattendedInstall]}")" == "yes" ]]; then
+        # validate the values
+        if ! is_valid_ip_or_range "${_CONF_INSTALL[externalIP]}"; then
+            exit_with_error "External IP '${_CONF_INSTALL[externalIP]}' is not a valid IP address. Ensure this includes the cidr. Please check conf/install.conf"
+        fi
+    fi
+
+    # validate the external gateway
+    if [[ -n "${_CONF_INSTALL[externalGateway]}" ]] || [[ "$( str_to_lower "${_CONF_INSTALL[unattendedInstall]}")" == "yes" ]]; then
+        if ! is_valid_ip4 "${_CONF_INSTALL[externalGateway]}"; then
+            exit_with_error "External gateway '${_CONF_INSTALL[externalGateway]}' is not a valid IP address. Please check conf/install.conf"
+        fi
+    fi
+
+    # validate the hostname
+    if [[ -n "${_CONF_INSTALL[hostname]}" ]] || [[ "$( str_to_lower "${_CONF_INSTALL[unattendedInstall]}")" == "yes" ]]; then
+        if ! is_valid_hostname "${_CONF_INSTALL[hostname]}"; then
+            exit_with_error "Hostname '${_CONF_INSTALL[hostname]}' is not valid. Please check conf/install.conf"
+        fi
+    fi
+    
+    # validate the container subnet
+    if [[ -n "${_CONF_INSTALL[containerSubnet]}" ]] || [[ "$( str_to_lower "${_CONF_INSTALL[unattendedInstall]}")" == "yes" ]]; then
+        # validate the values
+        if ! is_valid_ip_or_range "${_CONF_INSTALL[containerSubnet]}"; then
+            exit_with_error "Container subnet '${_CONF_INSTALL[containerSubnet]}' is not valid. Please check conf/install.conf"
+        fi
+    fi
+    
+    # validate the api whitelist - whitelist can be empty for unattended install
+    if [[ -n "${_CONF_INSTALL[apiWhitelist]}" ]]; then
+        IFS=',' read -ra _whitelistArray <<< "${_CONF_INSTALL[apiWhitelist]}"
+        local ip
+        for ip in ${_whitelistArray[@]}; do
+            if ! is_valid_ip_or_range "${ip}"; then
+                exit_with_error "apiWhitelist '${ip}' is an invalid ip or range. Please check conf/install.conf"
+            fi
+        done
+    fi
 
     return ${E_SUCCESS}
 }
