@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.10.4] - 2016-05-20
+#### Added
+- Added ability to whitelist api access before installing
+- Added random password retrieval from tredly api and display to user at end of installation (tredly/tredly-host#31, tredly/tredly-host#35)
+- Added all menu options to install config file
+- Added unattended install option to install config file (tredly/tredly-host#41)
+
+#### Changed
+- IPFW rule that did nothing and has been commented out since last version
+
+#### Fixed
+- Disabled TSO operating system wide, not just on BCE nics (tredly/tredly-host#39)
+
 ## [0.10.3] - 2016-05-13
 #### Fixed
 - Allow dot characters in hostname (tredly/tredly-build#39)
@@ -50,6 +63,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - Initial release of Tredly
 
+[0.10.4]: https://github.com/tredly/tredly-host/compare/v0.10.3...v0.10.4
 [0.10.3]: https://github.com/tredly/tredly-host/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/tredly/tredly-host/compare/v0.10.0...v0.10.2
 [0.10.0]: https://github.com/tredly/tredly-host/compare/v0.9.0...v0.10.0

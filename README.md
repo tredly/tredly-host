@@ -1,7 +1,7 @@
 # Tredly
 
-- Version: 0.10.3
-- Date: May 13 2016
+- Version: 0.10.4
+- Date: May 20 2016
 - [Release notes](https://github.com/tredly/tredly-host/blob/master/CHANGELOG.md)
 - [GitHub repository](https://github.com/tredly/tredly-host)
 
