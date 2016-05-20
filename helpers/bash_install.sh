@@ -66,15 +66,11 @@ else
     _configOptions[5]="${_CONF_INSTALL[containerSubnet]}"
 fi
 
-# TODO: remove hard coded ip and subtract from the given container subnet
-API_GUI_CONTAINER="10.99.0.253"
-
-# set locations from the file
-_configOptions[6]="${_CONF_INSTALL[tredlyBuildGit]}"
-_configOptions[7]="${_CONF_INSTALL[tredlyBuildBranch]}"
-_configOptions[8]="${_CONF_INSTALL[tredlyApiGit]}"
-_configOptions[9]="${_CONF_INSTALL[tredlyApiBranch]}"
-_configOptions[10]=$( str_to_lower "${_CONF_INSTALL[downloadKernelSource]}" )
+if [[ -z "${_CONF_INSTALL[apiWhitelist]}" ]]; then
+    _configOptions[6]=""
+else
+    _configOptions[6]="${_CONF_INSTALL[apiWhitelist]}"
+fi
 
 # check for a dhcp leases file for this interface
 #if [[ -f "/var/db/dhclient.leases.${_configOptions[1]}" ]]; then
@@ -138,7 +134,7 @@ fi
 
 ##########
 
-if [[ -z "${_configOptions[8]}" ]]; then
+if [[ -z "${_CONF_INSTALL[tredlyApiGit]}" ]]; then
     e_note "Skipping Tredly-API"
 else
     # set up tredly api
@@ -152,7 +148,7 @@ else
     fi
     
     while [[ ${_exitCode} -ne 0 ]]; do
-        git clone -b "${_configOptions[9]}" ${_configOptions[8]}
+        git clone -b "${_CONF_INSTALL[tredlyApiBranch]}" "${_CONF_INSTALL[tredlyApiGit]}"
         _exitCode=$?
     done
     
@@ -397,7 +393,7 @@ if [[ -d "/tmp/tredly-build" ]]; then
 fi
 
 while [[ ${_exitCode} -ne 0 ]]; do
-    git clone -b "${_configOptions[7]}" ${_configOptions[6]}
+    git clone -b "${_CONF_INSTALL[tredlyBuildBranch]}" "${_CONF_INSTALL[tredlyBuildGit]}"
     _exitCode=$?
 done
 
@@ -438,7 +434,7 @@ else
     # lets compile the kernel for VIMAGE!
 
     # fetch the source if the user said yes or the source doesnt exist
-    if [[ "${_configOptions[10]}" == 'yes' ]] || [[ ! -d '/usr/src/sys' ]]; then
+    if [[ "$( str_to_lower "${_CONF_INSTALL[downloadKernelSource]}" )" == 'yes' ]] || [[ ! -d '/usr/src/sys' ]]; then
         _thisRelease=$( sysctl -n kern.osrelease | cut -d '-' -f 1 -f 2 )
         
         # download manifest file to validate src.txz
@@ -483,11 +479,19 @@ else
             exit_with_error "Failed to unpack src.txz"
         fi
     fi
+    
+    cd /usr/src
+    
+    # clean up any previously failed builds
+    if [[ $( ls -1 /usr/obj | wc -l ) -gt 0 ]]; then
+        chflags -R noschg /usr/obj/usr
+        rm -rf /usr/obj/usr
+        make cleandir
+        make cleandir
+    fi
 
     # copy in the tredly kernel configuration file
     cp ${DIR}/kernel/TREDLY /usr/src/sys/amd64/conf
-
-    cd /usr/src
 
     # work out how many cpus are available to this machine, and use 80% of them to speed up compile
     _availCpus=$( sysctl -n hw.ncpu )
@@ -520,34 +524,44 @@ fi
 
 ##########
 # use tredly to set network details
-e_note "Setting Container Subnet"
 tredly-host config container subnet "${_configOptions[5]}"
 
-
-e_note "Setting Host Network"
 tredly-host config host network "${_configOptions[1]}" "${_configOptions[2]}" "${_configOptions[3]}"
 
-
-e_note "Setting Host Hostname"
 tredly-host config host hostname "${_configOptions[4]}"
 
 
 # if tredly api is enabled then add to whitelist
-#if [[ -n "${_configOptions[8]}" ]]; then
-    #e_note "Whitelisting IP addresses for API"
-    #tredly-host config firewall addAPIwhitelist ${API_GUI_CONTAINER}
+if [[ -n "${_CONF_INSTALL[tredlyApiGit]}" ]]; then
+    e_note "Whitelisting IP addresses for API"
     
-    #if [[ $? -eq 0 ]]; then
-        #e_success "Success"
-    #else
-        #e_error "Failed"
-    #fi
-#fi
+    # clear the whitelist in case of old entries
+    tredly-host config firewall clearAPIwhitelist > /dev/null
+    
+    IFS=',' read -ra _whitelistArray <<< "${_CONF_INSTALL[apiWhitelist]}"
+    ip
+    _exitCode=0
+    for ip in ${_whitelistArray[@]}; do
+        tredly-host config firewall addAPIwhitelist "${ip}" > /dev/null
+        _exitCode=$(( ${_exitCode} & $? ))
+    done
+    
+    if [[ ${_exitCode} -eq 0 ]]; then
+        e_success "Success"
+    else
+        e_error "Failed"
+    fi
+fi
 
 # echo out confirmation message to user
 e_header "Install Complete"
-echo -e "\e[35m"
+echo -e "${_colourOrange}${_formatBold}"
+echo "**************************************"
 echo "Your API Password is: ${apiPassword}"
+echo -e "**************************************${_formatReset}"
+
+echo -e "${_colourMagenta}"
+echo "Please make note of this password so that you may access the API"
 echo ""
 echo "To change this password, please run the command 'tredly-host config api'"
 echo "To whitelist addresses to access the API, please run the command 'tredly-host config firewall addAPIwhitelist <ip address>'"

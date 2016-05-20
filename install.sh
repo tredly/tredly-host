@@ -27,8 +27,8 @@ fi
 if test $? != 0
 then
     echo -e "\e[35m"
-    echo "################"
+    echo "=================================================="
     echo "An error occurred during tredly-host installation."
-    echo "################"
+    echo "=================================================="
     echo -e "\e[39m"
 fi

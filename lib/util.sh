@@ -801,19 +801,25 @@ function is_valid_ip4() {
     fi
     
 
-
     # make sure the string contains 3 dots
     local numDots=$( echo "${_ip4}" | grep -o -F '.' | wc -l )
     if [[ ${numDots} -ne 3 ]]; then
         return ${E_ERROR}
     fi
+    local value
 
     # explode the ip into its elements and loop over them
     local IFS='.'
     for value in ${_ip4}
     do
+        
+        # make sure its an int
+        if ! is_int "${value}"; then
+            return ${E_ERROR}
+        fi
+        
         # if this value is < 0 or > 255 then its bogus
-        if [[ "$value" -lt "0" || "$value" -gt "255" ]]; then
+        if [[ "${value}" -lt "0" || "${value}" -gt "255" ]]; then
             return ${E_ERROR}
         fi
     done
@@ -976,5 +982,35 @@ function versionCheck() {
             return ${E_ERROR}
     fi
     
+    return ${E_SUCCESS}
+}
+
+
+function is_valid_ip_or_range() {
+    local _input="${1}"
+    local _ip _cidr
+
+    # check if it includes a cidr
+    if string_contains_char "${_input}" "/"; then
+        # split the ip out from cidr
+        _ip=$( lcut "${_input}" '/' )
+        _cidr=$( rcut "${_input}" '/' )
+    else
+        _ip="${_input}"
+        _cidr=""
+    fi
+    
+    # validate the ip
+    if ! is_valid_ip4 "${_ip}"; then
+        return ${E_ERROR}
+    fi
+    
+    # validate the cidr if there was one
+    if [[ -n "${_cidr}" ]]; then
+        if ! is_valid_cidr "${_cidr}"; then
+            return ${E_ERROR}
+        fi
+    fi
+
     return ${E_SUCCESS}
 }

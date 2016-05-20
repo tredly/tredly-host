@@ -22,6 +22,7 @@ function tredlyHostMenuConfig() {
             echo -e "3.^External Gateway^${_configOptions[3]}"
             echo -e "4.^Hostname^${_configOptions[4]}"
             echo -e "5.^Container Subnet^${_configOptions[5]}"
+            echo -e "6.^API Whitelist^${_configOptions[6]}"
             
         } | column -ts ^
         echo -en "${_colourDefault}"
@@ -52,6 +53,10 @@ function tredlyHostMenuConfig() {
                 5)
                     # container subnet
                     tredlySelectContainerSubnet
+                ;;
+                6)
+                    # api whitelist
+                    tredlySelectApiWhitelist
                 ;;
                 *)
                     echo "Invalid input \"${_userSelection}\""
@@ -101,7 +106,7 @@ function tredlySelectExternalIP() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "External IP Address: " _userInput
@@ -124,7 +129,7 @@ function tredlySelectExternalGateway() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "External Gateway IP: " _userInput
@@ -145,7 +150,7 @@ function tredlySelectHostname() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Hostname: " _userInput
@@ -166,7 +171,7 @@ function tredlySelectContainerSubnet() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Container Subnet: " _userInput
@@ -192,7 +197,7 @@ function tredlySelectBuildRepo() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Tredly Build GIT URL: " _userInput
@@ -211,7 +216,7 @@ function tredlySelectBuildBranch() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Tredly Build Branch Name: " _userInput
@@ -230,7 +235,7 @@ function tredlySelectAPIURL() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Tredly Build GIT URL (blank for do not install): " _userInput
@@ -246,7 +251,7 @@ function tredlySelectAPIBranch() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Tredly API Branch Name: " _userInput
@@ -265,7 +270,7 @@ function tredlyDownloadSource() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Tredly API Branch Name: " _userInput
@@ -283,7 +288,7 @@ function tredlySelectDownloadKernel() {
     local _userInput
     
     # var for loop
-    _valid="false"
+    local _valid="false"
     
     while [[ "${_valid}" == "false" ]]; do
         read -p "Download Kernel Source (y/n): " _userInput
@@ -293,6 +298,35 @@ function tredlySelectDownloadKernel() {
             _valid="true"
             # set the global
             _configOptions[10]="${_userInput}"
+        fi
+    done
+}
+
+function tredlySelectApiWhitelist() {
+    local _userInput
+    
+    # var for loop
+    local _valid="false"
+    
+    while [[ "${_valid}" == "false" ]]; do
+        echo "Please enter a list of ip addresses or network ranges, separated by commas"
+        read -p "Tredly API Whitelist: " _userInput
+        
+        # validate it
+        IFS=',' read -ra _whitelistArray <<< "${_userInput}"
+        
+        for ip in ${_whitelistArray[@]}; do
+            if ! is_valid_ip_or_range "${ip}"; then
+                e_error "${ip} is an invalid ip address or range"
+                _valid="false"
+            else
+                _valid="true"
+            fi
+        done
+
+        if [[ "${_valid}" == "true" ]]; then
+            # set the global
+            _configOptions[6]="${_userInput}"
         fi
     done
 }

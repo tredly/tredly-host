@@ -34,8 +34,6 @@ $cmd 9 deny log logamount 5 ip from 'table(1)' to $clsn via 'table(2)'
 # Nat traffic received on external interface
 $cmd 100 nat 1 log logamount 5 ip from any to $eipTable recv $eifTable
 $cmd 101 check-state log logamount 5
-# Allow some tcp ports to communicate into the external interface/ip address
-#$cmd 102 allow log logamount 5 tcp from $eipTable to any 53, 80, 443, 22, 65222 in via $eifTable $sks
 
 ##############################################################
 # Tredly-Host
