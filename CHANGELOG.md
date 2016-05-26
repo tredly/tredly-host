@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.10.5] - 2016-05-26
+#### Changed
+- Turned off proxy buffering by default for HTTP(s) connections (tredly/tredly-host#29)
+
+#### Fixed
+- Removed line containing 'ip' in the installer (tredly/tredly-host#44)
+
 ## [0.10.4] - 2016-05-20
 #### Added
 - Added ability to whitelist api access before installing
@@ -63,6 +70,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - Initial release of Tredly
 
+[0.10.5]: https://github.com/tredly/tredly-host/compare/v0.10.4...v0.10.5
 [0.10.4]: https://github.com/tredly/tredly-host/compare/v0.10.3...v0.10.4
 [0.10.3]: https://github.com/tredly/tredly-host/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/tredly/tredly-host/compare/v0.10.0...v0.10.2
