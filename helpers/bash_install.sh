@@ -2,8 +2,8 @@
 
 set -o pipefail
 
-_VERSIONNUMBER="0.10.4"
-_VERSIONDATE="May 20 2016"
+_VERSIONNUMBER="0.10.5"
+_VERSIONDATE="May 26 2016"
 
 # where to send the logfile
 LOGFILE="/var/log/tredly-install.log"
@@ -539,7 +539,7 @@ if [[ -n "${_CONF_INSTALL[tredlyApiGit]}" ]]; then
     tredly-host config firewall clearAPIwhitelist > /dev/null
     
     IFS=',' read -ra _whitelistArray <<< "${_CONF_INSTALL[apiWhitelist]}"
-    ip
+    
     _exitCode=0
     for ip in ${_whitelistArray[@]}; do
         tredly-host config firewall addAPIwhitelist "${ip}" > /dev/null
